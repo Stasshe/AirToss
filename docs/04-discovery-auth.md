@@ -66,19 +66,22 @@ B → A : Hello { version, session_device_id_B, eph_pub_B }
 両者 : transcript = SHA-256(Hello_A || Hello_B)
 両者 : keys = HKDF-SHA256(ikm = shared, salt = transcript,
                           info = "airtoss v1")
-        → k_send_A, k_send_B, k_code
+        → k_auth, k_code
 
 両者 : code = SAS(k_code)      6 桁の短認証文字列として画面に表示
 
-A → B : Confirm { mac = HMAC(k_send_A, "confirm-a" || transcript) }
-B → A : Confirm { mac = HMAC(k_send_B, "confirm-b" || transcript) }
+A → B : Confirm { mac = HMAC(k_auth, "confirm-a" || transcript) }
+B → A : Confirm { mac = HMAC(k_auth, "confirm-b" || transcript) }
 ```
 
 6 桁コードの一致確認は人間が行う。
 コードは transcript から導出されるため、中間者が介在すると両画面のコードが一致しない。
 双方が UI で「一致している」を押し、かつ Confirm の MAC 検証が通った時点で、セッションを **認証済み** とする。
 
-`k_send_A` と `k_send_B` は、以後の全経路（LAN TCP を含む）における ChaCha20-Poly1305 の方向別鍵として使う（`06-transfer-protocol.md`）。
+`k_auth` は、フレーム暗号化には使わない。
+セッション中に確立するすべての接続（初回接続、および途中で切れた場合の再接続すべて）を認証するための長期鍵として、セッション終了まで保持する。
+接続ごとの実際の暗号鍵は、接続確立の都度 `06-transfer-protocol.md` の Rekey ハンドシェイクで新規に導出する。
+これにより、複数の物理接続にまたがって同一の暗号鍵を使い回すことがなくなり、nonce 再利用の危険が構造的に生じない。
 Wi-Fi Aware などリンク層に暗号化がある経路でも、アプリケーション層暗号化を省略しない。
 経路によって機密性の保証が変わる設計は、経路選択の自動化と両立しないからである。
 

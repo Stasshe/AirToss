@@ -65,14 +65,18 @@ trait Transport {
 ```
 
 実装は次の 5 つ。
+`Transport` trait の実装（`probe`/`connect`/`listen`/`network_impact`）は、経路の種類によらずすべて Rust core 側（`transport` モジュール）に置く。
+adapter は trait を実装しない。adapter が公開するのは無線操作の実行だけであり（`adapter 境界の規約`）、core 側の Transport 実装がそれを呼び出して `Stream`/`Listener` に包む。
 
 ```
 SameLanTransport        Rust core 内で完結（TCP）
-WifiAwareTransport      adapter がデータパスを確立し、socket を core へ渡す
+WifiAwareTransport      core が adapter にデータパス確立を指示し、返された socket を Stream に包む
 WifiDirectTransport     同上（Windows, Linux）
-TemporaryApTransport    adapter が AP を作成または参加し、以後は TCP
-BleGattTransport        adapter の GATT ストリームを Stream として包む
+TemporaryApTransport    core が adapter に AP 作成/参加を指示し、以後は TCP を core が扱う
+BleGattTransport        core が adapter の GATT 読み書きを Stream として包む
 ```
+
+新しい経路を追加するときは、core に `XxxTransport` を 1 つ追加し、その内部から呼ぶ無線操作だけを adapter に生やす。判断・状態管理を adapter 側に持たせない。
 
 転送プロトコル（`06`）は `Stream` の上でのみ動き、経路を知らない。
 これにより、経路の追加と削除が転送ロジックに波及しない。
