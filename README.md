@@ -55,17 +55,24 @@ AirToss は MIT ライセンスで公開する。
 - BLE Service Data のエンコードと検証
 - GATT channel の長さプレフィックス、断片化、再構成
 - X25519、HKDF-SHA256、HMAC-SHA256 による認証ハンドシェイクと 6 桁コード導出
+- 5 OS 向け Flutter プロジェクト、発見画面、認証確認画面
 
-Linux、iOS、Android の native adapter と Flutter UI は未実装である。M0 の合格には対応端末での実機試験が必要になる。
+Linux、iOS、Android の native adapter と Rust core の Flutter bridge は未実装である。M0 の合格には対応端末での実機試験が必要になる。
 
 ## 開発
 
-Rust 1.85 以降を使う。
+Rust 1.85 以降、Flutter stable 3.44.6 以降、Java 21 を使う。
 
 ```sh
 cargo test --workspace
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
+```
+
+```sh
+cd app
+flutter analyze
+flutter test
 ```
 
 依存ライブラリは MIT と互換性のある permissive license のものに限定し、copyleft license のコードを取り込まない。
