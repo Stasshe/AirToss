@@ -63,20 +63,23 @@ A → B : Hello { version, session_device_id_A, eph_pub_A }   eph_pub は X25519
 B → A : Hello { version, session_device_id_B, eph_pub_B }
 
 両者 : shared = X25519(eph_priv, eph_pub_peer)
-両者 : transcript = SHA-256(Hello_A || Hello_B)
+両者 : transcript = SHA-256(Hello_A_raw || Hello_B_raw)
 両者 : keys = HKDF-SHA256(ikm = shared, salt = transcript,
                           info = "airtoss v1")
         → k_auth, k_code
 
-両者 : code = SAS(k_code)      6 桁の短認証文字列として画面に表示
+両者 : code = decimal(u32_be(k_code[0..4]) mod 1,000,000)
+              先頭を 0 で埋めた 6 桁の数字として画面に表示
 
-A → B : Confirm { mac = HMAC(k_auth, "confirm-a" || transcript) }
-B → A : Confirm { mac = HMAC(k_auth, "confirm-b" || transcript) }
+A → B : Confirm { mac = HMAC(k_auth, "confirm-a" || transcript) }  A の UI 確認後
+B → A : Confirm { mac = HMAC(k_auth, "confirm-b" || transcript) }  B の UI 確認後
 ```
+
+`Hello_A_raw` と `Hello_B_raw` は、長さプレフィックスを除いた送信時の CBOR バイト列そのものとする。受信後の再エンコードを行わないため、CBOR map の並び順に依存しない。
 
 6 桁コードの一致確認は人間が行う。
 コードは transcript から導出されるため、中間者が介在すると両画面のコードが一致しない。
-双方が UI で「一致している」を押し、かつ Confirm の MAC 検証が通った時点で、セッションを **認証済み** とする。
+端末は利用者が「一致している」を押すまで Confirm を送らない。自身の Confirm を送信し、相手の正しい Confirm を受信した時点で、セッションを **認証済み** とする。片方でもキャンセルした場合は交渉を中止する。
 
 `k_auth` は、フレーム暗号化には使わない。
 セッション中に確立するすべての接続（初回接続、および途中で切れた場合の再接続すべて）を認証するための長期鍵として、セッション終了まで保持する。

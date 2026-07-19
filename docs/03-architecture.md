@@ -59,8 +59,12 @@ trait Transport {
     /// 経路確立に必要な待受を開始する
     async fn listen(&self) -> Result<Box<dyn Listener>>;
 
-    /// ネットワーク切り替えを伴うか（UX の事前明示に使う）
-    fn network_impact(&self) -> NetworkImpact;  // Preserved | Switches
+    /// 両端末のネットワーク影響を返す（UX の事前明示に使う）
+    fn network_impact(
+        &self,
+        peer: &PeerInfo,
+        role: TransportRole,
+    ) -> NetworkImpact;
 }
 ```
 
@@ -101,6 +105,14 @@ Idle
 どの状態からもエラーで `Failed(reason, recoverable_actions)` へ遷移でき、UI はそこから `02-ux.md` のエラー画面を構成する。
 後始末（`Closing`）は失敗経路でも必ず通す。
 これが NFR-5（無線動作を残さない）の実装点になる。
+
+`NetworkImpact` は local と peer のそれぞれについて `Preserved` または `Switches` を持つ。TemporaryAp ではホスト側、クライアント側、Android のアプリスコープ接続で結果が異なるため、経路種別だけから固定値を返さない。
+
+`Connected` で同時に実行する転送は 1 つだけとする。完了後は同じセッション内でどちらの端末からも次の転送を開始できる。
+
+## 進行中セッションの復元
+
+プロセス終了後の再開に必要な `session_device_id`、`k_auth`、転送識別子、item メタデータ、連続書き込み済み offset を、進行中の 1 転送に限ってアプリ専用領域へ保存する。再起動後は同じセッションとして経路を再確立し、接続ごとの Rekey と SessionBind をやり直す。完了、拒否、中止時に復元状態を削除する。転送履歴には使わない。
 
 ## adapter 境界の規約
 
