@@ -47,3 +47,25 @@ v1 の対象は **1 対 1 の近接ファイル・テキスト転送** だけで
 AirToss は MIT ライセンスで公開する。
 競合の Flying Carpet は GPL-3.0 であり、そのコードの複製と改変取り込みを一切行わない。
 挙動の観察と問題点の調査は行ってよいが、実装は独立に書く。
+
+## 実装状況
+
+`08-roadmap.md` の M0 から実装中である。現在の Rust core は次を含む。
+
+- BLE Service Data のエンコードと検証
+- GATT channel の長さプレフィックス、断片化、再構成
+- X25519、HKDF-SHA256、HMAC-SHA256 による認証ハンドシェイクと 6 桁コード導出
+
+Linux、iOS、Android の native adapter と Flutter UI は未実装である。M0 の合格には対応端末での実機試験が必要になる。
+
+## 開発
+
+Rust 1.85 以降を使う。
+
+```sh
+cargo test --workspace
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo fmt --all -- --check
+```
+
+依存ライブラリは MIT と互換性のある permissive license のものに限定し、copyleft license のコードを取り込まない。
